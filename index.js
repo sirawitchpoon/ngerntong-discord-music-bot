@@ -1,5 +1,5 @@
 /**
- * Discord DisTube Music Bot - Fixed Version
+ * Discord DisTube Music Bot - v5 Compatible
  * Made by Friday and Powered By Cortex Realm
  * Support Server: https://discord.gg/EWr3GgP6fe
  */
@@ -11,8 +11,6 @@ const path = require('path');
 const { DisTube } = require('distube');
 const { SpotifyPlugin } = require('@distube/spotify');
 const { SoundCloudPlugin } = require('@distube/soundcloud');
-// Remove YtDlpPlugin for now
-// const { YtDlpPlugin } = require('@distube/yt-dlp');
 const { emojis } = require('./config/emojis');
 
 // Check for required environment variables
@@ -45,7 +43,7 @@ const client = new Client({
 // Create collections for commands
 client.commands = new Collection();
 
-// Initialize DisTube with better configuration
+// Initialize DisTube v5 with improved configuration
 client.distube = new DisTube(client, {
   emitNewSongOnly: true,
   leaveOnEmpty: true,
@@ -59,8 +57,6 @@ client.distube = new DisTube(client, {
       emitEventsAfterFetching: false
     }),
     new SoundCloudPlugin()
-    // Temporarily remove YtDlpPlugin to fix YouTube issues
-    // new YtDlpPlugin()
   ],
   ytdlOptions: {
     highWaterMark: 1 << 25,
@@ -76,7 +72,11 @@ client.distube = new DisTube(client, {
     earrape: 'bass=g=50',
     nightcore: 'aresample=48000,asetrate=48000*1.25',
     vaporwave: 'aresample=48000,asetrate=48000*0.8'
-  }
+  },
+  // DisTube v5 specific options
+  searchCooldown: 30,
+  emptyCooldown: 30,
+  savePreviousSongs: true
 });
 
 // Load commands
@@ -158,20 +158,39 @@ app.get('/', (req, res) => {
         status: 'online',
         message: 'Discord Music Bot is running!',
         timestamp: new Date().toISOString(),
+        versions: {
+          node: process.version,
+          distube: '5.0.0',
+          discordjs: '14.14.1'
+        },
         bot: client.isReady() ? {
             ready: client.isReady(),
             guilds: client.guilds.cache.size,
-            users: client.users.cache.size
+            users: client.users.cache.size,
+            uptime: client.uptime
         } : { ready: false }
     });
 });
 
 app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'OK' });
+    res.status(200).json({ 
+      status: 'OK', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
 });
 
 app.listen(PORT, () => {
     console.log(`🌐 Health check server running on port ${PORT}`);
+});
+
+// Error handling for uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 // Deploy commands and then log in to Discord
@@ -181,6 +200,7 @@ app.listen(PORT, () => {
     console.log('🔄 Logging in to Discord...');
     await client.login(process.env.TOKEN);
     console.log('✅ Bot started successfully!');
+    console.log(`🎵 DisTube v5 initialized with ${client.distube.plugins.length} plugins`);
     
     // Make client globally available for health check
     global.botClient = client;

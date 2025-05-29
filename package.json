@@ -1,18 +1,19 @@
 {
   "name": "discord-music-bot",
   "version": "1.0.0",
-  "description": "Discord Music Bot with DisTube - Stable Version",
+  "description": "Discord Music Bot with DisTube - Fixed Dependencies",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "install-force": "npm install --legacy-peer-deps"
   },
   "dependencies": {
     "discord.js": "^14.14.1",
     "@discordjs/builders": "^1.7.0",
     "@discordjs/voice": "^0.16.1",
     "@discordjs/rest": "^2.2.0",
-    "distube": "^4.2.0",
+    "distube": "^5.0.0",
     "@distube/spotify": "^2.0.0",
     "@distube/soundcloud": "^2.0.0",
     "ytdl-core": "^4.11.5",
@@ -30,9 +31,8 @@
     "discord",
     "bot",
     "music",
-    "distube",
-    "stable"
+    "distube"
   ],
-  "author": "Your Name",
+  "author": "Poon X GOD",
   "license": "MIT"
 }
