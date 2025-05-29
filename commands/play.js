@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { infoEmbed, errorEmbed, warningEmbed } = require('../utils/embeds');
+const { infoEmbed, errorEmbed } = require('../utils/embeds');
 const { emojis } = require('../config/emojis');
 
 module.exports = {
@@ -42,73 +42,21 @@ module.exports = {
         interaction.client.distube.voices.join(voiceChannel);
       }
       
-      // Check if query is a YouTube URL that might be problematic
-      const isYouTubeUrl = query.includes('youtube.com') || query.includes('youtu.be');
-      
-      if (isYouTubeUrl) {
-        await interaction.editReply({ 
-          embeds: [warningEmbed(`${emojis.warning} YouTube links may not work reliably on this server. Consider using Spotify links or search terms instead.`)]
-        });
-      } else {
-        await interaction.editReply({ 
-          embeds: [infoEmbed(`${emojis.search} Searching for: \`${query}\``)]
-        });
-      }
-      
-      // Try to play the song
       await interaction.client.distube.play(voiceChannel, query, {
         member: interaction.member,
         textChannel: interaction.channel,
         metadata: { interaction }
       });
       
+      // Edit the deferred reply
+      await interaction.editReply({ 
+        embeds: [infoEmbed(`${emojis.search} Searching for: \`${query}\``)]
+      });
     } catch (error) {
-      console.error('Play command error:', error);
-      
-      let errorMessage = 'Error playing music';
-      let suggestions = [];
-      
-      // Handle specific error types
-      if (error.errorCode === 'YTDLP_ERROR' || error.message.includes('youtube')) {
-        errorMessage = 'YouTube content unavailable';
-        suggestions = [
-          '• Try searching by song title instead of URL',
-          '• Use Spotify or SoundCloud links',
-          '• Search for: `artist - song title`'
-        ];
-      } else if (error.message.includes('Age')) {
-        errorMessage = 'Age-restricted content';
-        suggestions = [
-          '• This video is age-restricted',
-          '• Try a different version of the song'
-        ];
-      } else if (error.message.includes('Private')) {
-        errorMessage = 'Private or unavailable content';
-        suggestions = [
-          '• This content is private or removed',
-          '• Try searching for the song instead'
-        ];
-      } else if (error.message.includes('region')) {
-        errorMessage = 'Content not available in this region';
-        suggestions = [
-          '• This content is geo-blocked',
-          '• Try using Spotify or SoundCloud instead'
-        ];
-      } else {
-        suggestions = [
-          '• Check your search term',
-          '• Try a different song',
-          '• Use a direct Spotify/SoundCloud link'
-        ];
-      }
-      
-      const embed = errorEmbed(`${emojis.error} ${errorMessage}`)
-        .addFields(
-          { name: 'What you searched:', value: `\`${query}\``, inline: false },
-          { name: 'Suggestions:', value: suggestions.join('\n'), inline: false }
-        );
-      
-      await interaction.editReply({ embeds: [embed] });
+      console.error(error);
+      await interaction.editReply({ 
+        embeds: [errorEmbed(`${emojis.error} Error playing music: ${error.message}`)]
+      });
     }
   },
-};
+}; 
