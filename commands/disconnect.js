@@ -9,6 +9,7 @@ module.exports = {
   
   async execute(interaction) {
     const voiceChannel = interaction.member.voice.channel;
+    const botVoiceChannel = interaction.guild.members.me.voice.channel;
     
     // Check if user is in a voice channel
     if (!voiceChannel) {
@@ -18,26 +19,64 @@ module.exports = {
       });
     }
     
-    const queue = interaction.client.distube.getQueue(interaction.guildId);
-    
-    // Check if bot is connected
-    if (!queue) {
+    // Check if bot is in a voice channel
+    if (!botVoiceChannel) {
       return interaction.reply({ 
         embeds: [errorEmbed(`${emojis.error} I'm not connected to any voice channel!`)], 
         ephemeral: true 
       });
     }
     
+    // Check if user and bot are in the same voice channel
+    if (voiceChannel.id !== botVoiceChannel.id) {
+      return interaction.reply({ 
+        embeds: [errorEmbed(`${emojis.error} You need to be in the same voice channel as me!`)], 
+        ephemeral: true 
+      });
+    }
+    
     try {
-      // Stop the queue and disconnect
-      await interaction.client.distube.stop(interaction.guildId);
-      await interaction.client.distube.voices.leave(interaction.guildId);
+      // Try to get the queue first (it might not exist)
+      const queue = interaction.client.distube.getQueue(interaction.guildId);
+      
+      if (queue) {
+        // If queue exists, stop it properly
+        await interaction.client.distube.stop(interaction.guildId);
+      }
+      
+      // Force disconnect from voice channel
+      const connection = interaction.guild.members.me.voice;
+      if (connection.channel) {
+        await connection.disconnect();
+      }
+      
+      // Also try DisTube's leave method
+      try {
+        await interaction.client.distube.voices.leave(interaction.guildId);
+      } catch (leaveError) {
+        console.log('DisTube leave method failed, but connection already handled');
+      }
       
       await interaction.reply({ 
         embeds: [successEmbed(`${emojis.stop} Successfully disconnected from voice channel!`)]
       });
+      
     } catch (error) {
-      console.error(error);
+      console.error('Disconnect error:', error);
+      
+      // Try force disconnect even if DisTube fails
+      try {
+        const connection = interaction.guild.members.me.voice;
+        if (connection.channel) {
+          await connection.disconnect();
+          return interaction.reply({ 
+            embeds: [successEmbed(`${emojis.stop} Force disconnected from voice channel!`)]
+          });
+        }
+      } catch (forceError) {
+        console.error('Force disconnect also failed:', forceError);
+      }
+      
       await interaction.reply({ 
         embeds: [errorEmbed(`${emojis.error} Error disconnecting: ${error.message}`)]
       });
